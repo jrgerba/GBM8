@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33122.133
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GBM8", "GBM8\GBM8.csproj", "{78A39F14-9F9C-4922-87DD-E0200AAE21E7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GBM8.UnitTests", "GBM8.UnitTests\GBM8.UnitTests.csproj", "{ABECBCAD-1F90-41F3-856D-E67FA5DBCDCB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0FDC1013-3FDE-412B-9880-0956F0C3B4F2}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{78A39F14-9F9C-4922-87DD-E0200AAE21E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78A39F14-9F9C-4922-87DD-E0200AAE21E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78A39F14-9F9C-4922-87DD-E0200AAE21E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78A39F14-9F9C-4922-87DD-E0200AAE21E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABECBCAD-1F90-41F3-856D-E67FA5DBCDCB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABECBCAD-1F90-41F3-856D-E67FA5DBCDCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABECBCAD-1F90-41F3-856D-E67FA5DBCDCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABECBCAD-1F90-41F3-856D-E67FA5DBCDCB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1E111903-4901-4D34-85DB-C6CA52D818F1}
+	EndGlobalSection
+EndGlobal
