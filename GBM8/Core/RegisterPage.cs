@@ -85,6 +85,10 @@ public struct RegisterPage
             L = (byte)value;
         }
     }
+    
+    public ushort SP { get; set; }
+    
+    public ushort PC { get; set; }
 
     public bool FlagZ
     {
