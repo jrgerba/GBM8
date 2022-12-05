@@ -2,9 +2,7 @@
 
 public class Processor
 {
-    readonly RegisterPage Registers = new();
+    private readonly RegisterPage _registers = new();
 
     public void Clock() { }
-
-
 }

@@ -5,60 +5,48 @@ namespace GBM8.Core;
 
 public struct RegisterPage
 {
-    public static bool operator ==(RegisterPage regA, RegisterPage regB) =>
-        regB.a == regA.a &&
-        regB.b == regA.b &&
-        regB.c == regA.c &&
-        regB.d == regA.d &&
-        regB.e == regA.e &&
-        regB.f == regA.f &&
-        regB.h == regA.h &&
-        regB.l == regA.l;
-
-    public static bool operator !=(RegisterPage regA, RegisterPage regB) => !(regA == regB);
-
-    private byte a, b, c, d, e, f, h, l;
+    private byte _a, _b, _c, _d, _e, _f, _h, _l;
 
     public byte A
     {
-        get => a;
-        set => a = value;
+        get => _a;
+        set => _a = value;
     }
     public byte B
     {
-        get => b;
-        set => b = value;
+        get => _b;
+        set => _b = value;
     }
     public byte C
     {
-        get => c;
-        set => c = value;
+        get => _c;
+        set => _c = value;
     }
     public byte D
     {
-        get => d;
-        set => d = value;
+        get => _d;
+        set => _d = value;
     }
     public byte E
     {
-        get => e;
-        set => e = value;
+        get => _e;
+        set => _e = value;
     }
     public byte F
     {
-        get => f;
+        get => _f;
         // Lower nibble of F is tied to 0
-        set => f = value &= 0xF0;
+        set => _f = value &= 0xF0;
     }
     public byte H
     {
-        get => h;
-        set => h = value;
+        get => _h;
+        set => _h = value;
     }
     public byte L
     {
-        get => l;
-        set => l = value;
+        get => _l;
+        set => _l = value;
     }
 
     public ushort AF
@@ -203,7 +191,7 @@ public struct RegisterPage
         StatusFlag.Z or 
         StatusFlag.N or
         StatusFlag.H or
-        StatusFlag.C => (f & (1 << (int)flag)) != 0,
+        StatusFlag.C => (_f & (1 << (int)flag)) != 0,
         _ => throw new UnreachableException()
     };
 
@@ -218,9 +206,9 @@ public struct RegisterPage
                 int mask = 1 << (int)flag;
 
                 if (value)
-                    f |= (byte)mask;
+                    _f |= (byte)mask;
                 else
-                    f &= (byte)~mask;
+                    _f &= (byte)~mask;
 
                 break;
             default:

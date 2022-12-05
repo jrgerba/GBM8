@@ -122,7 +122,7 @@ public class Interpreter
         reg.FlagH = (lo & 0x10) != 0;
 
         memWrites[0] = (addr, param);
-
+        
         return new StateModification
         {
             Registers = reg,
