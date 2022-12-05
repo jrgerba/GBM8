@@ -183,4 +183,31 @@ public class Interpreter
         return new StateModification(reg);
     }
     #endregion
+
+    #region 16-bit alu
+
+    private StateModification ADD16Bit(RegisterPage reg, ushort param)
+    {
+        reg.FlagN = false;
+        reg.FlagH = (((reg.HL & 0xFFF) + (param & 0xFFF)) & 0x1000) == 0x1000;
+        reg.FlagC = ((reg.HL + param) & 0x1_0000) == 0x1_0000;
+
+        reg.HL += param;
+        
+        return new StateModification(reg);
+    }
+
+    private StateModification AddSP(RegisterPage reg, sbyte param)
+    {
+        reg.FlagZ = false;
+        reg.FlagN = false;
+        reg.FlagH = (((reg.SP & 0x0F) + (param & 0x0F)) & 0x10) == 0x10;
+        reg.FlagC = (((reg.SP & 0xFF) + (param & 0xFF)) & 0x100) == 0x100;
+
+        reg.SP = (ushort)(reg.SP + param);
+
+        return new StateModification(reg);
+    }
+
+    #endregion
 }
