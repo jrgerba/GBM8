@@ -210,4 +210,87 @@ public class Interpreter
     }
 
     #endregion
+
+    #region Bit Ops
+
+    private StateModification BIT(RegisterPage reg, byte value, int bit)
+    {
+        reg.FlagZ = ((value) & (1 << bit)) == 0;
+        reg.FlagN = false;
+        reg.FlagH = true;
+
+        return new StateModification(reg);
+    }
+
+    private StateModification RES(RegisterPage reg, Register8 param, int bit)
+    {
+        reg.SetRegister(param, (byte)(reg.GetRegister(param) & ~(1 << bit)));
+
+        return new StateModification(reg);
+    }
+
+    private StateModification RES(RegisterPage reg, ushort addr, byte param, int bit)
+    {
+        memWrites[0] = (addr, (byte)(param & ~(1 << bit)));
+
+        return new StateModification
+        {
+            Registers = reg,
+            Memory = memWrites
+        };
+    }
+
+    private StateModification SET(RegisterPage reg, Register8 param, int bit)
+    {
+        reg.SetRegister(param, (byte)(reg.GetRegister(param) | (1 << bit)));
+
+        return new StateModification(reg);
+    }
+
+    private StateModification SET(RegisterPage reg, ushort addr, byte param, int bit)
+    {
+        memWrites[0] = (addr, (byte)(param | (1 << bit)));
+
+        return new StateModification
+        {
+            Registers = reg,
+            Memory = memWrites
+        };
+    }
+
+    private StateModification SWAP(RegisterPage reg, Register8 param)
+    {
+        byte res = reg.GetRegister(param);
+
+        res = (byte)((res << 4) | (res >> 4));
+
+        reg.FlagZ = res == 0;
+        reg.FlagN = false;
+        reg.FlagH = false;
+        reg.FlagC = false;
+
+        reg.SetRegister(param, res);
+
+        return new StateModification(reg);
+    }
+
+    private StateModification SWAP(RegisterPage reg, ushort addr, byte param)
+    {
+        param = (byte)((param << 4) | (param >> 4));
+
+        reg.FlagZ = param == 0;
+        reg.FlagN = false;
+        reg.FlagH = false;
+        reg.FlagC = false;
+
+        memWrites[0] = (addr, param);
+
+        return new StateModification
+        {
+            Registers = reg,
+            Memory = memWrites
+        };
+    }
+    
+    #endregion
 }
