@@ -219,4 +219,6 @@ public struct RegisterPage
                 throw new UnreachableException();
         }
     }
+    
+    public void ApplyFlagModification(FlagModification fm) => fm.Apply(this);
 }
