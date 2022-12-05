@@ -1,7 +1,4 @@
-﻿using System.Net;
-using System.Text.RegularExpressions;
-
-namespace GBM8.Core;
+﻿namespace GBM8.Core;
 
 public class Interpreter
 {
@@ -10,12 +7,11 @@ public class Interpreter
     #region 8-bit alu
     public StateModification ADC(RegisterPage reg, byte param)
     {
-        int lo, full;
-        lo = (reg.A & 0x0F) + (param & 0x0F) + (reg.GetFlag(StatusFlag.C) ? 1 : 0);
+        int lo = (reg.A & 0x0F) + (param & 0x0F) + (reg.GetFlag(StatusFlag.C) ? 1 : 0);
 
         reg.SetFlag(StatusFlag.H, (lo & 0x10) != 0);
 
-        full = lo + (reg.A & 0xF0) + (param & 0xF0);
+        int full = lo + (reg.A & 0xF0) + (param & 0xF0);
 
         reg.SetFlag(StatusFlag.C, (full & 0x100) != 0);
         
@@ -130,7 +126,7 @@ public class Interpreter
         lo = (param & 0x0F) + 1;
         param += 1;
 
-        reg.FlagZ = param == 0;
+        reg.FlagZ = (param & 0xFF) == 0;
         reg.FlagN = false;
         reg.FlagH = (lo & 0x10) != 0;
 
