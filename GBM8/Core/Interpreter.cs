@@ -161,4 +161,103 @@ public class Interpreter
     }
     
     #endregion
+
+    #region Bit Shift Ops
+
+    private byte Rl(byte param, int carry, bool setZ = false)
+    {
+        FlagModification.SetFlag(StatusFlag.C, (param & 0b1000_0000) == 0b1000_0000);
+
+        param = (byte)((param << 1) | carry);
+
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, false);
+        
+        FlagModification.SetFlag(StatusFlag.Z, setZ && param == 0);
+
+        return param;
+    }
+
+    private byte Rlc(byte param, bool setZ = false)
+    {
+        FlagModification.SetFlag(StatusFlag.C, (param & 0b1000_0000) == 0b1000_0000);
+
+        param = byte.RotateLeft(param, 1);
+
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, false);
+
+        FlagModification.SetFlag(StatusFlag.Z, setZ && param == 0);
+
+        return param;
+    }
+
+    private byte Rr(byte param, int carry, bool setZ)
+    {
+        FlagModification.SetFlag(StatusFlag.C, (param & 0b0000_0001) == 0b0000_0001);
+
+        param = (byte)((param >> 1) | (carry << 7));
+
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, false);
+        
+        FlagModification.SetFlag(StatusFlag.Z, setZ && param == 0);
+
+        return param;
+    }
+
+    private byte Rrc(byte param, bool setZ)
+    {
+        FlagModification.SetFlag(StatusFlag.C, (param & 0b0000_0001) == 0b0000_0001);
+
+        param = byte.RotateRight(param, 1);
+
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, false);
+        
+        FlagModification.SetFlag(StatusFlag.Z, setZ && param == 0);
+
+        return param;
+    }
+
+    private byte Sla(byte param)
+    {
+        FlagModification.SetFlag(StatusFlag.C, (param & 0b1000_0000) == 0b1000_0000);
+
+        param <<= 1;
+
+        FlagModification.SetFlag(StatusFlag.Z, param == 0);
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, false);
+
+        return param;
+    }
+
+    private byte Sra(byte param)
+    {
+        FlagModification.SetFlag(StatusFlag.C, (param & 0b0000_0001) == 0b0000_0001);
+
+        param = (byte)((param >> 1) | (param & 0b1000_0000));
+        
+        FlagModification.SetFlag(StatusFlag.Z, param == 0);
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, false);
+
+        return param;
+    }
+
+    private byte Srl(byte param)
+    {
+        FlagModification.SetFlag(StatusFlag.C, (param & 0b0000_0001) == 0b0000_0001);
+
+        param >>= 1;
+
+        FlagModification.SetFlag(StatusFlag.Z, param == 0);
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, false);
+
+        return param;
+    }
+
+    #endregion
 }
