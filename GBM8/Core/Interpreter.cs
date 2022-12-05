@@ -1,295 +1,163 @@
-﻿namespace GBM8.Core;
+﻿using System.Runtime.Intrinsics.X86;
+
+namespace GBM8.Core;
 
 public class Interpreter
 {
-    protected (ushort, byte)[] memWrites = new (ushort, byte)[2];
-
+    public FlagModification FlagModification { get; private set; }
+    
     #region 8-bit alu
-    public StateModification ADC(RegisterPage reg, byte param)
+    
+    public byte Add(byte paramA, byte paramB, int carry)
     {
-        int lo = (reg.A & 0x0F) + (param & 0x0F) + (reg.GetFlag(StatusFlag.C) ? 1 : 0);
-
-        reg.SetFlag(StatusFlag.H, (lo & 0x10) != 0);
-
-        int full = lo + (reg.A & 0xF0) + (param & 0xF0);
-
-        reg.SetFlag(StatusFlag.C, (full & 0x100) != 0);
+        int result = paramA + paramB + carry;
         
-        reg.A = (byte)full;
+        FlagModification.SetFlag(StatusFlag.Z, (result & 0xFF) == 0);
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, (((paramA & 0x0F) + (paramB & 0x0F) + carry) & 0x10) == 0x10);
+        FlagModification.SetFlag(StatusFlag.C, (result & 0x100) == 0x100);
 
-        reg.FlagN = false;
-        reg.FlagZ = reg.A == 0;
-
-        return new StateModification(reg);
+        return (byte)result;
     }
 
-    public StateModification ADD8Bit(RegisterPage reg, byte param)
+    public byte And(byte paramA, byte paramB)
     {
-        int lo = (reg.A & 0x0F) + (param & 0x0F);
-
-        reg.FlagH = (lo & 0x10) != 0;
-
-        int full = lo + (reg.A & 0xF0) + (param & 0xF0);
-
-        reg.FlagC = (full & 0x100) != 0;
-
-        reg.A = (byte)full;
-
-        reg.FlagN = false;
-        reg.FlagZ = reg.A == 0;
-
-        return new StateModification(reg);
-    }
-
-    public StateModification AND(RegisterPage reg, byte param)
-    {
-        reg.A &= param;
-
-        reg.FlagZ = reg.A == 0;
-        reg.FlagN = false;
-        reg.FlagH = true;
-        reg.FlagC = false;
-
-        return new StateModification(reg);
-    }
-
-    public StateModification CP(RegisterPage reg, byte param)
-    {
-        int lo = (reg.A & 0x0F) - (param & 0x0F);
-        int full = reg.A - param;
-
-        reg.FlagZ = (full & 0xFF) == 0;
-        reg.FlagN = true;
-        reg.FlagH = (lo & 0x10) != 0;
-        reg.FlagC = (full & 0x100) != 0;
-
-        return new StateModification(reg);
-    }
-
-    public StateModification DEC(RegisterPage reg, Register8 r)
-    {
-        byte param = reg.GetRegister(r);
-
-        int lo = (param & 0x0F) - 1;
-        reg.SetRegister(r, (byte)(param - 1));
-
-        reg.FlagZ = reg.GetRegister(r) == 0;
-        reg.FlagN = true;
-        reg.FlagH = (lo & 0x10) != 0;
-
-        return new StateModification(reg);
-    }
-
-    public StateModification DEC(RegisterPage reg, ushort addr, byte param)
-    {
-        int lo = (param & 0x0F) - 1;
-        param -= 1;
-
-        reg.FlagZ = param == 0;
-        reg.FlagN = true;
-        reg.FlagH = (lo & 0x10) != 0;
-
-        memWrites[0] = (addr, param);
-
-        return new StateModification
-        {
-            Registers = reg,
-            Memory = new ReadOnlySpan<(ushort, byte)>(memWrites, 0, 1)
-        };
-    }
-
-    protected StateModification INC(RegisterPage reg, Register8 r)
-    {
-        byte param = reg.GetRegister(r);
-
-        int lo = (param & 0x0F) + 1;
-        reg.SetRegister(r, (byte)(param + 1));
-
-        reg.FlagZ = reg.GetRegister(r) == 0;
-        reg.FlagN = false;
-        reg.FlagH = (lo & 0x10) != 0;
-
-        return new StateModification(reg);
-    }
-
-    protected StateModification INC(RegisterPage reg, ushort addr, byte param)
-    {
-        int lo = (param & 0x0F) + 1;
-        param += 1;
-
-        reg.FlagZ = (param & 0xFF) == 0;
-        reg.FlagN = false;
-        reg.FlagH = (lo & 0x10) != 0;
-
-        memWrites[0] = (addr, param);
+        byte result = (byte)(paramA & paramB);
         
-        return new StateModification
-        {
-            Registers = reg,
-            Memory = new ReadOnlySpan<(ushort, byte)>(memWrites, 0, 1)
-        };
+        FlagModification.SetFlag(StatusFlag.Z, result == 0);
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, true);
+        FlagModification.SetFlag(StatusFlag.C, false);
+
+        return result;
     }
 
-    protected StateModification OR(RegisterPage reg, byte param)
+    public void Cp(byte paramA, byte paramB)
     {
-        reg.A |= param;
-
-        reg.FlagZ = reg.A == 0;
-        reg.FlagN = false;
-        reg.FlagH = false;
-        reg.FlagC = false;
-
-        return new StateModification(reg);
+        int temp = paramA - paramB;
+        
+        FlagModification.SetFlag(StatusFlag.Z, (temp & 0xFF) == 0);
+        FlagModification.SetFlag(StatusFlag.H, true);
+        FlagModification.SetFlag(StatusFlag.H, ((paramA & 0x0F) - (paramB & 0x0F) & 0x10) == 0x10);
+        FlagModification.SetFlag(StatusFlag.C, (temp & 0x100) == 0x100);
     }
 
-    protected StateModification SBC(RegisterPage reg, byte param)
+    public byte Dec(byte param)
     {
-        int carry = reg.GetFlag(StatusFlag.C) ? 1 : 0;
-        int lo = (reg.A & 0x0F) - (param & 0x0F) - carry;
-        int full = reg.A - param - carry;
-        reg.A = (byte)full;
+        byte result = (byte)(param - 1);
+        
+        FlagModification.SetFlag(StatusFlag.Z, result == 0);
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, (((param & 0x0F) - 1) & 0x10) == 0x10);
 
-        reg.FlagZ = reg.A == 0;
-        reg.FlagN = true;
-        reg.FlagH = (lo & 0x10) != 0;
-        reg.FlagC = (full & 0x100) != 0;
-
-        return new StateModification(reg);
+        return result;
     }
 
-    protected StateModification SUB(RegisterPage reg, byte param)
+    public byte Inc(byte param)
     {
-        int lo = (reg.A & 0x0F) - (param & 0x0F);
-        int full = reg.A - param;
-        reg.A = (byte)full;
+        byte result = (byte)(param + 1);
+        
+        FlagModification.SetFlag(StatusFlag.Z, result == 0);
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, (((param & 0x0F) + 1) & 0x10) == 0x10);
 
-        reg.FlagZ = reg.A == 0;
-        reg.FlagN = true;
-        reg.FlagH = (lo & 0x10) != 0;
-        reg.FlagC = (full & 0x100) != 0;
-
-        return new StateModification(reg);
+        return result;
     }
 
-    protected StateModification XOR(RegisterPage reg, byte param)
+    public byte Or(byte paramA, byte paramB)
     {
-        reg.A ^= param;
+        paramA |= paramB;
 
-        reg.FlagZ = reg.A == 0;
-        reg.FlagN = false;
-        reg.FlagH = false;
-        reg.FlagC = false;
+        FlagModification.SetFlag(StatusFlag.Z, paramA == 0);
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, false);
+        FlagModification.SetFlag(StatusFlag.C, false);
 
-        return new StateModification(reg);
+        return paramA;
     }
+
+    protected byte Sub(byte paramA, byte paramB, int carry = 0)
+    {
+        int result = paramA - paramB - carry;
+
+        FlagModification.SetFlag(StatusFlag.Z, (result & 0xFF) == 0);
+        FlagModification.SetFlag(StatusFlag.N, true);
+        FlagModification.SetFlag(StatusFlag.H, (((paramA & 0x0F) - (paramB & 0x0F) - carry) & 0x10) == 0x10);
+        FlagModification.SetFlag(StatusFlag.C, (result & 0x100) == 0x100);
+
+        return (byte)result;
+    }
+
+    protected byte Xor(byte paramA, byte paramB)
+    {
+        paramA ^= paramB;
+
+        FlagModification.SetFlag(StatusFlag.Z, paramA == 0);
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, false);
+        FlagModification.SetFlag(StatusFlag.C, false);
+
+        return paramA;
+    }
+    
     #endregion
 
     #region 16-bit alu
 
-    private StateModification ADD16Bit(RegisterPage reg, ushort param)
+    private ushort Add(ushort paramA, ushort paramB)
     {
-        reg.FlagN = false;
-        reg.FlagH = (((reg.HL & 0xFFF) + (param & 0xFFF)) & 0x1000) == 0x1000;
-        reg.FlagC = ((reg.HL + param) & 0x1_0000) == 0x1_0000;
+        int temp = paramA + paramB;
 
-        reg.HL += param;
-        
-        return new StateModification(reg);
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, (((paramA & 0xFFF) + (paramB & 0xFFF)) & 0x1000) == 0x1000);
+        FlagModification.SetFlag(StatusFlag.C, (temp & 0x10000) == 0x10000);
+
+        return (ushort)temp;
     }
 
-    private StateModification AddSP(RegisterPage reg, sbyte param)
+    private ushort Add(ushort paramA, sbyte paramB)
     {
-        reg.FlagZ = false;
-        reg.FlagN = false;
-        reg.FlagH = (((reg.SP & 0x0F) + (param & 0x0F)) & 0x10) == 0x10;
-        reg.FlagC = (((reg.SP & 0xFF) + (param & 0xFF)) & 0x100) == 0x100;
+        int result = paramA + paramB;
 
-        reg.SP = (ushort)(reg.SP + param);
+        FlagModification.SetFlag(StatusFlag.Z, false);
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, (((paramA & 0x0F) + (paramB & 0x0F)) & 0x10) == 0x10);
+        FlagModification.SetFlag(StatusFlag.C, (((paramA & 0xFF) + (paramB & 0xFF)) & 0x100) == 0x100);
 
-        return new StateModification(reg);
+        return (ushort)result;
     }
+
+    private ushort Dec(ushort param) => (ushort)(param - 1);
+
+    private ushort Inc(ushort param) => (ushort)(param + 1);
+    
+    
 
     #endregion
 
     #region Bit Ops
 
-    private StateModification BIT(RegisterPage reg, byte value, int bit)
+    private void Bit(byte param, int bit)
     {
-        reg.FlagZ = ((value) & (1 << bit)) == 0;
-        reg.FlagN = false;
-        reg.FlagH = true;
-
-        return new StateModification(reg);
+        FlagModification.SetFlag(StatusFlag.Z, (param & (1 << bit)) == 0);
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, true);
     }
 
-    private StateModification RES(RegisterPage reg, Register8 param, int bit)
-    {
-        reg.SetRegister(param, (byte)(reg.GetRegister(param) & ~(1 << bit)));
+    private byte Res(byte param, int bit) => (byte)(param & ~(1 << bit));
 
-        return new StateModification(reg);
-    }
+    private byte Set(byte param, int bit) => (byte)(param | (1 << bit));
 
-    private StateModification RES(RegisterPage reg, ushort addr, byte param, int bit)
-    {
-        memWrites[0] = (addr, (byte)(param & ~(1 << bit)));
-
-        return new StateModification
-        {
-            Registers = reg,
-            Memory = memWrites
-        };
-    }
-
-    private StateModification SET(RegisterPage reg, Register8 param, int bit)
-    {
-        reg.SetRegister(param, (byte)(reg.GetRegister(param) | (1 << bit)));
-
-        return new StateModification(reg);
-    }
-
-    private StateModification SET(RegisterPage reg, ushort addr, byte param, int bit)
-    {
-        memWrites[0] = (addr, (byte)(param | (1 << bit)));
-
-        return new StateModification
-        {
-            Registers = reg,
-            Memory = memWrites
-        };
-    }
-
-    private StateModification SWAP(RegisterPage reg, Register8 param)
-    {
-        byte res = reg.GetRegister(param);
-
-        res = (byte)((res << 4) | (res >> 4));
-
-        reg.FlagZ = res == 0;
-        reg.FlagN = false;
-        reg.FlagH = false;
-        reg.FlagC = false;
-
-        reg.SetRegister(param, res);
-
-        return new StateModification(reg);
-    }
-
-    private StateModification SWAP(RegisterPage reg, ushort addr, byte param)
+    private byte Swap(byte param)
     {
         param = (byte)((param << 4) | (param >> 4));
 
-        reg.FlagZ = param == 0;
-        reg.FlagN = false;
-        reg.FlagH = false;
-        reg.FlagC = false;
+        FlagModification.SetFlag(StatusFlag.Z, param == 0);
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, false);
+        FlagModification.SetFlag(StatusFlag.C, false);
 
-        memWrites[0] = (addr, param);
-
-        return new StateModification
-        {
-            Registers = reg,
-            Memory = memWrites
-        };
+        return param;
     }
     
     #endregion
