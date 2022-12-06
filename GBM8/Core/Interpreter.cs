@@ -5,9 +5,11 @@ namespace GBM8.Core;
 
 public class Interpreter
 {
+    private Queue<MemoryOperation> _operationQueue = new();
     private int _tCycleWait = 0;
     private int _mCycleWait = 0;
-    public FlagModification FlagModification { get; private set; }
+    private bool _imeWait = false;
+    public FlagModification FlagModification { get; }
     public int WaitTime
     {
         get => _mCycleWait;
@@ -18,6 +20,7 @@ public class Interpreter
         }
     }
     public bool Ready => WaitTime <= 0;
+    public bool IME { get; private set; }
 
     #region 8-bit alu
     
@@ -276,7 +279,7 @@ public class Interpreter
 
     #region Control Flow
 
-    private bool EvaluateBranchCondition(BranchCondition cc, RegisterPage reg) => cc switch
+    private static bool EvaluateBranchCondition(BranchCondition cc, RegisterPage reg) => cc switch
     {
         BranchCondition.C => reg.FlagC,
         BranchCondition.Nc => !reg.FlagC,
@@ -324,12 +327,63 @@ public class Interpreter
 
     private bool Ret(BranchCondition cc, RegisterPage reg, bool allowInterrupts)
     {
-        // TODO: Handle interrupt case
+        if (allowInterrupts)
+            IME = true;
+
         return cc == BranchCondition.None || EvaluateBranchCondition(cc, reg);
     }
 
     private (ushort addr, ushort? push) Rst(int vec) =>
         Call(BranchCondition.None, new RegisterPage(), (ushort)(vec * 8));
 
+    #endregion
+
+    #region Stack Ops
+
+    private ushort AddSP(ushort paramA, sbyte paramB)
+    {
+        FlagModification.SetFlag(StatusFlag.Z, false);
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, (((paramA & 0x0F) + (paramB & 0x0F)) & 0x10) == 0x10);
+        FlagModification.SetFlag(StatusFlag.C, (((paramA & 0xFF) + (paramB & 0xFF)) & 0x100) == 0x100);
+
+        return (ushort)(paramA + paramB);
+    }
+
+    #endregion
+
+    #region Misc
+
+    private void Ccf(bool flagC)
+    {
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, false);
+        FlagModification.SetFlag(StatusFlag.C, !flagC);
+    }
+
+    private byte Cpl(byte param)
+    {
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, false);
+
+        return (byte)~param;
+    }
+
+    private void Di() => IME = false;
+
+    public void Ei() => _imeWait = true;
+
+    public void Halt()
+    {
+        // Todo: Implement this
+    }
+
+    public void Scf()
+    {
+        FlagModification.SetFlag(StatusFlag.N, false);
+        FlagModification.SetFlag(StatusFlag.H, false);
+        FlagModification.SetFlag(StatusFlag.C, true);
+    }
+    
     #endregion
 }
