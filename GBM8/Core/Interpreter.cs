@@ -1,11 +1,24 @@
-﻿using System.Runtime.Intrinsics.X86;
+﻿using System.Diagnostics;
+using System.Runtime.Intrinsics.X86;
 
 namespace GBM8.Core;
 
 public class Interpreter
 {
+    private int _tCycleWait = 0;
+    private int _mCycleWait = 0;
     public FlagModification FlagModification { get; private set; }
-    
+    public int WaitTime
+    {
+        get => _mCycleWait;
+        private set
+        {
+            _mCycleWait = value;
+            _tCycleWait = value * 4;
+        }
+    }
+    public bool Ready => WaitTime <= 0;
+
     #region 8-bit alu
     
     public byte Add(byte paramA, byte paramB, int carry)
@@ -258,6 +271,65 @@ public class Interpreter
 
         return param;
     }
+
+    #endregion
+
+    #region Control Flow
+
+    private bool EvaluateBranchCondition(BranchCondition cc, RegisterPage reg) => cc switch
+    {
+        BranchCondition.C => reg.FlagC,
+        BranchCondition.Nc => !reg.FlagC,
+        BranchCondition.Z => reg.FlagZ,
+        BranchCondition.Nz => !reg.FlagZ,
+        BranchCondition.None or _ => throw new UnreachableException()
+    };
+    
+    private (ushort pc, ushort? push) Call(BranchCondition cc, RegisterPage reg, ushort addr)
+    {
+        if (cc == BranchCondition.None)
+            return (addr, reg.PC);
+
+        if (!EvaluateBranchCondition(cc, reg))
+            return (reg.PC, null);
+
+        WaitTime += 3;
+        return (addr, reg.PC);
+
+    }
+
+    private ushort Jp(BranchCondition cc, RegisterPage reg, ushort addr)
+    {
+        if (cc == BranchCondition.None)
+            return addr;
+
+        if (!EvaluateBranchCondition(cc, reg))
+            return reg.PC;
+
+        WaitTime++;
+        return addr;
+    }
+
+    private ushort Jr(BranchCondition cc, RegisterPage reg, sbyte offset)
+    {
+        if (cc == BranchCondition.None)
+            return (ushort)(reg.PC + offset);
+
+        if (!EvaluateBranchCondition(cc, reg))
+            return reg.PC;
+
+        WaitTime++;
+        return (ushort)(reg.PC + offset);
+    }
+
+    private bool Ret(BranchCondition cc, RegisterPage reg, bool allowInterrupts)
+    {
+        // TODO: Handle interrupt case
+        return cc == BranchCondition.None || EvaluateBranchCondition(cc, reg);
+    }
+
+    private (ushort addr, ushort? push) Rst(int vec) =>
+        Call(BranchCondition.None, new RegisterPage(), (ushort)(vec * 8));
 
     #endregion
 }
